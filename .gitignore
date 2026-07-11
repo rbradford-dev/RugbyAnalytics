@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data — never commit raw API responses or credentials
+data/raw/
+*.json
+secrets.py
+config_local.py
+
+# Outputs are regeneratable
+outputs/figures/*.pdf
+outputs/figures/*.png
+outputs/results/*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Keep empty-directory markers
+!data/processed/.gitkeep
+!outputs/figures/.gitkeep
+!outputs/results/.gitkeep
