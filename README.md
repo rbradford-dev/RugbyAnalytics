@@ -33,11 +33,11 @@ Split so each of us owns questions matched to our training.
 
 | | Question | Primary method | Owner |
 |---|---|---|---|
-| RQ1 | What is each team's latent strength, and how does it evolve over time? | State-space / dynamic **Elo & Glicko-2**; Kalman-filtered ratings | Poythress (stats) |
-| RQ2 | Can we model a single match's score margin and win probability? | **Bayesian hierarchical** Poisson/negative-binomial GLM (team attack/defense, home advantage) | Poythress (stats) |
+| RQ1 | What is each team's latent strength, and how does it evolve over time? | State-space / dynamic **Elo & Glicko-2**; Kalman-filtered ratings | Davia (stats) |
+| RQ2 | Can we model a single match's score margin and win probability? | **Bayesian hierarchical** Poisson/negative-binomial GLM (team attack/defense, home advantage) | Davia (stats) |
 | RQ3 | Which features drive upsets beyond raw rating? | Gradient-boosted trees (**XGBoost**) + SHAP; RugbyIQ style vectors as features | Robert (CS/AI) |
 | RQ4 | How do we turn match models into a champion probability? | **Monte Carlo** bracket simulation (10k+ tournament rollouts) | Robert (CS/AI) |
-| RQ5 | Are the forecasts *calibrated* and better than baselines? | Brier score, log-loss, reliability diagrams vs Elo-only & bookmaker-implied baselines | Poythress (stats) |
+| RQ5 | Are the forecasts *calibrated* and better than baselines? | Brier score, log-loss, reliability diagrams vs Elo-only & bookmaker-implied baselines | Davia (stats) |
 | RQ6 | How sensitive is the champion forecast to draw, injuries, and form? | Scenario / sensitivity analysis on the simulator | Both |
 
 ---
@@ -114,5 +114,5 @@ docs/MODELING.md  Full methodology + validation protocol
 ## Team
 - **Robert Bradford** — CS / AI. ETL, feature engineering, XGBoost, Monte Carlo
   simulator, backtesting harness, pipeline/infra.
-- **Poythress** — Math / Statistics (graduate). Rating models, Bayesian hierarchical
-  GLM, calibration & hypothesis testing, statistical validation.
+- **Davia Poythress** — Math / Statistics (graduate). Rating models, Bayesian
+  hierarchical GLM, calibration & hypothesis testing, statistical validation.
