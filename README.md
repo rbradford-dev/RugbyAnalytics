@@ -99,11 +99,19 @@ docs/MODELING.md  Full methodology + validation protocol
 ```
 
 ## Roadmap
-- [ ] **M1 — Data:** ETL for annual tournaments + past RWCs into one match table
-- [ ] **M2 — Ratings:** Elo/Glicko-2 baseline + Bayesian state-space ratings (R)
+Tracked as GitHub issues #1–#6.
+
+- [x] **M1 — Data (Six Nations):** ESPN + RugbyPass/Opta ETL, 2024–2025 full squads,
+      all 23 schema metrics (`src/etl/rugbypass_pull.py`). *Remaining: Rugby
+      Championship, autumn internationals, past RWCs.*
+- [x] **M2 — Ratings (baseline):** MOV-adjusted Elo w/ home advantage
+      (`src/features/elo.py`). Validated vs actual champions 2023–2025.
+      *Remaining: Glicko-2 + Bayesian state-space (R, Davia).*
 - [ ] **M3 — Match model:** Bayesian hierarchical GLM (R) vs XGBoost (Python)
-- [ ] **M4 — Backtest:** walk-forward calibration; pick the winning match model
-- [ ] **M5 — Simulator:** Monte Carlo RWC bracket -> champion probabilities
+- [~] **M4 — Backtest:** harness live (`team_analysis.py`). First result: Elo
+      Brier **0.186** / accuracy **70.7%** vs home-always 0.458 / 53.7% over 42
+      walk-forward matches. *Remaining: reliability diagrams, bookmaker baseline.*
+- [ ] **M5 — Simulator:** Monte Carlo bracket -> champion probabilities
 - [ ] **M6 — Report:** calibrated RWC 2027 champion forecast + sensitivity analysis
 
 ## Branch Strategy
