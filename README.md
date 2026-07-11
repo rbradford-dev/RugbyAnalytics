@@ -1,20 +1,73 @@
 # RugbyAnalytics
 
-Quantitative rugby analytics — data pipeline, feature engineering, statistical
-modeling, and visualization. Sister project to
-[RugbyIQ](https://github.com/rbradford-dev/RugbyIQ).
+**A statistical forecasting engine that predicts the next Rugby World Cup champion.**
 
-> **Scope TODO:** define how RugbyAnalytics differs from RugbyIQ (e.g. different
-> competition, domestic/club vs international, live/in-match vs post-hoc,
-> player-level vs team-level). Fill this in before writing code so the two
-> repos don't overlap.
+RugbyAnalytics rates international teams from match-level data, forecasts individual
+match outcomes, and simulates the tournament bracket thousands of times to produce a
+calibrated probability that each team lifts the trophy. It is the *predictive* sibling
+to [RugbyIQ](https://github.com/rbradford-dev/RugbyIQ) — where RugbyIQ describes *how*
+teams play (style vectors), RugbyAnalytics forecasts *who wins*, and can consume RugbyIQ
+style vectors as model features.
+
+**North-star metric:** calibrated probability of the RWC 2027 champion, backtested for
+accuracy and calibration on annual tournaments before it is trusted on the World Cup.
+
+---
+
+## The core problem — and how we make it tractable
+A World Cup happens once every four years. You cannot validate a forecasting model on a
+handful of tournaments. So the design separates the *estimand* from the *validation set*:
+
+- **Estimand:** P(team = RWC 2027 champion).
+- **Training / backtest data:** every international fixture we can source — the annual
+  **Six Nations**, **The Rugby Championship**, **autumn internationals**, and past World
+  Cups — thousands of matches with real sample size.
+- **Validation protocol:** walk-forward backtesting. Fit on matches up to date *t*,
+  predict the next tournament, score it, roll forward. Only after the models are
+  calibrated on annual tournaments do we apply them to the RWC bracket.
+
+---
+
+## Research questions
+Split so each of us owns questions matched to our training.
+
+| | Question | Primary method | Owner |
+|---|---|---|---|
+| RQ1 | What is each team's latent strength, and how does it evolve over time? | State-space / dynamic **Elo & Glicko-2**; Kalman-filtered ratings | Poythress (stats) |
+| RQ2 | Can we model a single match's score margin and win probability? | **Bayesian hierarchical** Poisson/negative-binomial GLM (team attack/defense, home advantage) | Poythress (stats) |
+| RQ3 | Which features drive upsets beyond raw rating? | Gradient-boosted trees (**XGBoost**) + SHAP; RugbyIQ style vectors as features | Robert (CS/AI) |
+| RQ4 | How do we turn match models into a champion probability? | **Monte Carlo** bracket simulation (10k+ tournament rollouts) | Robert (CS/AI) |
+| RQ5 | Are the forecasts *calibrated* and better than baselines? | Brier score, log-loss, reliability diagrams vs Elo-only & bookmaker-implied baselines | Poythress (stats) |
+| RQ6 | How sensitive is the champion forecast to draw, injuries, and form? | Scenario / sensitivity analysis on the simulator | Both |
+
+---
+
+## Methodology stack
+Three interlocking layers, each producing an input to the next.
+
+1. **Rating layer** — dynamic team-strength estimates over time (Elo, Glicko-2, and a
+   Bayesian state-space rating). *Owned in R.*
+2. **Match layer** — given two teams on a date, a probability distribution over the score
+   and the win/draw. Bayesian hierarchical GLM (R/Stan) **and** an ML challenger
+   (XGBoost, Python). Best-calibrated model wins.
+3. **Tournament layer** — Monte Carlo simulation that draws match outcomes from the match
+   layer through the full pool + knockout bracket, repeated thousands of times, yielding
+   each team's championship probability. *Owned in Python.*
+
+Model selection is decided by **out-of-sample calibration** (Brier / log-loss on
+walk-forward backtests), not in-sample fit — the point where CS/AI and statistics have to
+agree on a number.
+
+---
 
 ## Stack
 | Language | Role |
 |---|---|
-| **Python** | ETL, feature engineering, ML models |
-| **R** | PCA, clustering, hypothesis tests, regression, ggplot2 |
-| **Jupyter** | Exploration + analysis notebooks |
+| **Python** | ETL pipeline, feature engineering, XGBoost match model, Monte Carlo tournament simulator, backtesting harness |
+| **R / Stan** | Elo & Glicko-2 ratings, Bayesian hierarchical GLM, calibration diagnostics, ggplot2 reporting |
+| **Jupyter** | Exploration, model comparison, final champion-probability report |
+
+---
 
 ## Quick Setup
 ```bash
@@ -22,29 +75,44 @@ git clone https://github.com/rbradford-dev/RugbyAnalytics.git
 cd RugbyAnalytics
 
 python3 -m venv venv
-source venv/bin/activate          # Mac/Linux
-# venv\\Scripts\\activate       # Windows
+source venv/bin/activate            # Mac/Linux
+# venv\Scripts\activate             # Windows
 pip install -r requirements.txt
 
-cp .env.example .env               # then fill in API keys
+# R deps (from R console):  source("r/00_install.R")
+
+cp .env.example .env                 # then fill in API keys
 ```
 
 ## Project Structure
 ```
-src/etl/          Python — API extractors
-src/features/     Python — feature/vector construction
-src/ml/           Python — models
-r/                R      — PCA, clustering, tests, regression
-notebooks/        Jupyter — analysis notebooks
-data/processed/   Unified dataset (gitignored, generated by pipeline)
-outputs/          Figures and results (gitignored, regeneratable)
+src/etl/          Python — API extractors, match-results loader
+src/features/     Python — feature engineering (form, rest days, RugbyIQ style vectors)
+src/ml/           Python — XGBoost match model + SHAP
+src/simulation/   Python — Monte Carlo bracket simulator -> champion probabilities
+src/backtest/     Python — walk-forward validation harness (Brier, log-loss)
+r/                R      — Elo/Glicko ratings, Bayesian GLM (Stan), calibration plots
+notebooks/        Jupyter — exploration, model comparison, champion report
+data/processed/   Unified match dataset (gitignored, generated by pipeline)
+outputs/          Figures, ratings, forecasts (gitignored, regeneratable)
+docs/MODELING.md  Full methodology + validation protocol
 ```
+
+## Roadmap
+- [ ] **M1 — Data:** ETL for annual tournaments + past RWCs into one match table
+- [ ] **M2 — Ratings:** Elo/Glicko-2 baseline + Bayesian state-space ratings (R)
+- [ ] **M3 — Match model:** Bayesian hierarchical GLM (R) vs XGBoost (Python)
+- [ ] **M4 — Backtest:** walk-forward calibration; pick the winning match model
+- [ ] **M5 — Simulator:** Monte Carlo RWC bracket -> champion probabilities
+- [ ] **M6 — Report:** calibrated RWC 2027 champion forecast + sensitivity analysis
 
 ## Branch Strategy
 - `main` — protected, reviewed code only
 - `dev`  — integration branch; merge here first
-- `feature/*` — per-workstream branches
+- `feature/*` — per-workstream branches (e.g. `feature/elo-ratings`, `feature/mc-sim`)
 
 ## Team
-- Robert Bradford — CS/AI (ETL, ML, notebooks)
-- Poythress — Math/Stats (R analysis, statistical modeling, notebooks)
+- **Robert Bradford** — CS / AI. ETL, feature engineering, XGBoost, Monte Carlo
+  simulator, backtesting harness, pipeline/infra.
+- **Poythress** — Math / Statistics (graduate). Rating models, Bayesian hierarchical
+  GLM, calibration & hypothesis testing, statistical validation.
